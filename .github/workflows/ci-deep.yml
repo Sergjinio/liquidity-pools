@@ -3,17 +3,17 @@ name: "CI Deep"
 on:
   workflow_dispatch:
     inputs:
-      unitFuzzRuns:
+      unit_fuzz_runs:
         default: "100000"
-        description: "Unit: number of fuzz runs."
+        description: "Unit: Number of fuzz runs."
         required: false
-      invariantRuns:
+      invariant_runs:
         default: "100"
-        description: "Invariant runs: number of sequences of function calls generated and run."
+        description: "Invariant runs: Number of sequences of function calls generated and run."
         required: false
-      invariantDepth:
+      invariant_depth:
         default: "100"
-        description: "Invariant depth: number of function calls made in a given run."
+        description: "Invariant depth: Number of function calls made in a given run."
         required: false
 
 env:
@@ -22,21 +22,30 @@ env:
 jobs:
   test-unit:
     env:
-      FOUNDRY_FUZZ_RUNS: ${{ inputs.unitFuzzRuns }}
+      FOUNDRY_FUZZ_RUNS: ${{ inputs.unit_fuzz_runs }}
 
     strategy:
       fail-fast: true
 
-    runs-on: ubuntu-latest-64-cores
-    steps:
-      - uses: actions/checkout@v3
+    runs-on: ubuntu-latest
 
+    steps:
+      # Checkout code
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Install Foundry
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          cache: false # Requires a seed: https://github.com/foundry-rs/foundry-toolchain#fuzzing
+          cache: false
 
-      - name: Run tests
+      # Verify Foundry Installation
+      - name: Verify Foundry Installation
+        run: forge --version
+
+      # Run Unit Tests
+      - name: Run Unit Tests
         run: forge test --no-match-path "test/invariant/**/*.sol"
         env:
           FOUNDRY_PROFILE: ci
@@ -44,20 +53,37 @@ jobs:
 
   test-invariant:
     env:
-      FOUNDRY_INVARIANT_DEPTH: ${{ inputs.invariantDepth }}
-      FOUNDRY_INVARIANT_RUNS: ${{ inputs.invariantRuns }}
+      FOUNDRY_INVARIANT_DEPTH: ${{ inputs.invariant_depth }}
+      FOUNDRY_INVARIANT_RUNS: ${{ inputs.invariant_runs }}
 
     strategy:
       fail-fast: true
 
-    runs-on: ubuntu-latest-64-cores
-    steps:
-      - uses: actions/checkout@v3
+    runs-on: ubuntu-latest
 
-      - name: Install Foundry
+    steps:
+      # Checkout code
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Install Foundry with nightly version
+      - name: Install Foundry (Nightly)
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
+          cache: false
+
+      # Verify Foundry Installation
+      - name: Verify Foundry Installation
+        run: forge --version
+
+      # Run Invariant Tests
+      - name: Run Invariant Tests
+        run: forge test --match-path "test/invariant/**/*.sol"
+        env:
+          FOUNDRY_PROFILE: ci
+          FORK_TESTS: false
+
           cache: false # Requires a seed: https://github.com/foundry-rs/foundry-toolchain#fuzzing
 
       - name: Run tests
